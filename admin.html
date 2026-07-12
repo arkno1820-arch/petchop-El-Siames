@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel — Administrar productos</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F2E7; --paper:#FFFDF8; --ink:#20291F; --moss:#39543F;
+    --gold:#C8932E; --line:#DCD2B8; --danger:#B4442E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Work Sans',sans-serif;padding:20px;}
+  h1{font-family:'Fraunces',serif;font-size:22px;margin:0 0 4px;}
+  .sub{color:var(--moss);font-size:13px;margin-bottom:24px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:520px;margin:0 auto 20px;}
+
+  label{display:block;font-size:12.5px;font-weight:600;margin:12px 0 5px;}
+  input,select,textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+    font-family:'Work Sans',sans-serif;font-size:14px;background:#fff;
+  }
+  textarea{resize:vertical;min-height:60px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  button.primary{
+    margin-top:18px;width:100%;background:var(--ink);color:#fff;border:none;
+    border-radius:8px;padding:12px;font-size:14.5px;font-weight:600;cursor:pointer;
+  }
+  button.primary:disabled{opacity:.5;}
+
+  .preview{width:100%;aspect-ratio:1/1;max-width:160px;border-radius:10px;object-fit:cover;
+    background:#EEE7D6;margin-top:8px;display:none;}
+
+  .lista{max-width:520px;margin:0 auto;}
+  .prod-row{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    display:flex;gap:12px;align-items:center;padding:10px;margin-bottom:10px;
+  }
+  .prod-row img{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#EEE7D6;}
+  .prod-info{flex:1;}
+  .prod-name{font-weight:600;font-size:14px;}
+  .prod-meta{font-size:12px;color:var(--moss);}
+  .prod-actions button{
+    border:none;background:none;cursor:pointer;font-size:16px;padding:4px 6px;
+  }
+
+  .pin-screen{max-width:320px;margin:80px auto;text-align:center;}
+  .msg{font-size:13px;text-align:center;margin-top:10px;min-height:16px;}
+  .msg.ok{color:var(--moss);} .msg.err{color:var(--danger);}
+</style>
+</head>
+<body>
+
+<div id="pinScreen" class="pin-screen">
+  <h1>Panel del vendedor</h1>
+  <p class="sub">Ingresá tu PIN para administrar los productos</p>
+  <input type="password" id="pinInput" inputmode="numeric" placeholder="PIN" style="text-align:center;font-size:20px;letter-spacing:4px;">
+  <button class="primary" onclick="entrar()">Entrar</button>
+  <div class="msg err" id="pinMsg"></div>
+</div>
+
+<div id="panel" style="display:none;">
+  <h1>Tus productos</h1>
+  <p class="sub">Agregá, editá o sacá de la venta cualquier producto.</p>
+
+  <div class="card">
+    <h3 id="formTitle" style="margin:0;font-family:'Work Sans',sans-serif;font-size:14px;">Nuevo producto</h3>
+    <label>Foto</label>
+    <input type="file" id="imgInput" accept="image/*" onchange="previsualizar()">
+    <img id="preview" class="preview">
+
+    <label>Nombre</label>
+    <input id="nombre" placeholder="Ej: Mate imbuia">
+
+    <div class="row2">
+      <div><label>Precio</label><input id="precio" type="number" placeholder="15990"></div>
+      <div><label>Stock</label><input id="stock" type="number" placeholder="10"></div>
+    </div>
+
+    <label>Categoría</label>
+    <input id="categoria" placeholder="Ej: Mates">
+
+    <label>Descripción</label>
+    <textarea id="descripcion" placeholder="Detalle breve del producto"></textarea>
+
+    <button class="primary" id="guardarBtn" onclick="guardar()">Guardar producto</button>
+    <button class="primary" id="cancelarBtn" style="display:none;background:var(--line);color:var(--ink);" onclick="resetForm()">Cancelar edición</button>
+    <div class="msg" id="formMsg"></div>
+  </div>
+
+  <div class="lista" id="lista"></div>
+</div>
+
+<script>
+/* ====== CONFIGURACIÓN ====== */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwL-iWhugdd2GCikJGptN8RZ8JdbMTRLkyfsNcSuDeQD2kDg2w7ZRfcv40Fcy_epoFK/exec';
+
+let PIN = sessionStorage.getItem('adminPin') || '';
+let productos = [];
+let editandoId = null;
+let imagenBase64 = null, imagenNombre = null, imagenTipo = null;
+
+if(PIN) entrarConPin();
+
+function entrar(){
+  PIN = document.getElementById('pinInput').value.trim();
+  if(!PIN){ return; }
+  entrarConPin();
+}
+
+async function entrarConPin(){
+  try{
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=productos&pin=${encodeURIComponent(PIN)}`);
+    const data = await res.json();
+    if(!data.ok && data.error){ throw new Error(data.error); }
+    sessionStorage.setItem('adminPin', PIN);
+    productos = data.productos || [];
+    document.getElementById('pinScreen').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    renderLista();
+  }catch(err){
+    document.getElementById('pinMsg').textContent = 'No se pudo conectar. Revisá el PIN o la URL configurada.';
+  }
+}
+
+function previsualizar(){
+  const file = document.getElementById('imgInput').files[0];
+  if(!file) return;
+  imagenNombre = file.name; imagenTipo = file.type;
+  const reader = new FileReader();
+  reader.onload = () => {
+    imagenBase64 = reader.result.split(',')[1];
+    const prev = document.getElementById('preview');
+    prev.src = reader.result;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function llamarBackend(body){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method:'POST',
+    body: JSON.stringify({...body, pin: PIN})
+  });
+  return res.json();
+}
+
+async function guardar(){
+  const nombre = document.getElementById('nombre').value.trim();
+  const precio = Number(document.getElementById('precio').value);
+  if(!nombre || !precio){
+    document.getElementById('formMsg').textContent = 'Completá al menos nombre y precio.';
+    document.getElementById('formMsg').className = 'msg err';
+    return;
+  }
+  const btn = document.getElementById('guardarBtn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  try{
+    let imagenUrl = editandoId ? (productos.find(p=>p.id===editandoId)||{}).imagenUrl : '';
+    if(imagenBase64){
+      const up = await llamarBackend({action:'uploadImage', filename:imagenNombre, mimeType:imagenTipo, base64:imagenBase64});
+      if(!up.ok) throw new Error(up.error);
+      imagenUrl = up.url;
+    }
+
+    const producto = {
+      id: editandoId,
+      nombre, precio,
+      categoria: document.getElementById('categoria').value.trim(),
+      descripcion: document.getElementById('descripcion').value.trim(),
+      stock: Number(document.getElementById('stock').value) || 0,
+      imagenUrl, activo: true
+    };
+
+    const resp = await llamarBackend({action: editandoId ? 'updateProduct':'addProduct', producto});
+    if(!resp.ok) throw new Error(resp.error);
+
+    if(editandoId){
+      const i = productos.findIndex(p=>p.id===editandoId);
+      productos[i] = resp.producto;
+    } else {
+      productos.push(resp.producto);
+    }
+    resetForm();
+    renderLista();
+    document.getElementById('formMsg').textContent = 'Guardado ✓';
+    document.getElementById('formMsg').className = 'msg ok';
+  }catch(err){
+    document.getElementById('formMsg').textContent = 'Error: ' + err.message;
+    document.getElementById('formMsg').className = 'msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar producto';
+  }
+}
+
+function editar(id){
+  const p = productos.find(x=>x.id===id);
+  editandoId = id;
+  document.getElementById('formTitle').textContent = 'Editando: ' + p.nombre;
+  document.getElementById('nombre').value = p.nombre;
+  document.getElementById('precio').value = p.precio;
+  document.getElementById('stock').value = p.stock;
+  document.getElementById('categoria').value = p.categoria;
+  document.getElementById('descripcion').value = p.descripcion || '';
+  const prev = document.getElementById('preview');
+  prev.src = p.imagenUrl; prev.style.display = p.imagenUrl ? 'block':'none';
+  imagenBase64 = null;
+  document.getElementById('cancelarBtn').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function resetForm(){
+  editandoId = null; imagenBase64 = null;
+  document.getElementById('formTitle').textContent = 'Nuevo producto';
+  ['nombre','precio','stock','categoria','descripcion'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('imgInput').value = '';
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('cancelarBtn').style.display = 'none';
+}
+
+async function eliminar(id){
+  if(!confirm('¿Sacar este producto de la venta?')) return;
+  const resp = await llamarBackend({action:'deleteProduct', id});
+  if(resp.ok){
+    productos = productos.filter(p=>p.id!==id);
+    renderLista();
+  }
+}
+
+function renderLista(){
+  document.getElementById('lista').innerHTML = productos.map(p => `
+    <div class="prod-row">
+      <img src="${p.imagenUrl || 'https://placehold.co/100/EEE7D6/999?text=•'}">
+      <div class="prod-info">
+        <div class="prod-name">${p.nombre}</div>
+        <div class="prod-meta">${p.categoria||''} · $${Number(p.precio).toLocaleString('es-CL')} · stock ${p.stock}</div>
+      </div>
+      <div class="prod-actions">
+        <button onclick="editar('${p.id}')" title="Editar">✏️</button>
+        <button onclick="eliminar('${p.id}')" title="Eliminar">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>

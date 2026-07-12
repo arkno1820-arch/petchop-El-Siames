@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F2E7;
+    --paper:#FFFDF8;
+    --ink:#20291F;
+    --moss:#39543F;
+    --moss-dark:#233428;
+    --gold:#C8932E;
+    --line:#DCD2B8;
+    --whatsapp:#2FA85A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Work Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.brand{font-family:'Fraunces',serif;}
+
+  header{
+    padding:28px 20px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{font-size:24px;font-weight:700;letter-spacing:-0.01em;}
+  .brand small{display:block;font-family:'Work Sans',sans-serif;font-size:12px;font-weight:500;color:var(--moss);letter-spacing:.08em;text-transform:uppercase;}
+
+  .cart-btn{
+    position:relative;background:var(--moss);color:#fff;border:none;
+    padding:10px 16px;border-radius:999px;font-family:'Work Sans',sans-serif;
+    font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .cart-count{
+    background:var(--gold);color:var(--ink);min-width:20px;height:20px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  }
+
+  .filters{
+    display:flex;gap:8px;overflow-x:auto;padding:16px 20px;scrollbar-width:none;
+  }
+  .filters::-webkit-scrollbar{display:none;}
+  .pill{
+    flex:0 0 auto;padding:8px 16px;border-radius:999px;border:1px solid var(--line);
+    background:var(--paper);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);
+  }
+  .pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:16px;padding:8px 20px 100px;max-width:1100px;margin:0 auto;
+  }
+  .card{
+    background:var(--paper);border-radius:var(--radius);overflow:hidden;
+    border:1px solid var(--line);display:flex;flex-direction:column;
+  }
+  .card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#EEE7D6;}
+  .card-body{padding:12px 12px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .card-name{font-weight:600;font-size:14.5px;line-height:1.3;}
+  .card-cat{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--moss);font-weight:600;}
+  .price-tag{
+    align-self:flex-start;font-family:'Fraunces',serif;font-weight:600;font-size:16px;
+    background:var(--bg);border:1px dashed var(--gold);padding:3px 10px 3px 8px;
+    border-radius:4px;transform:rotate(-1deg);margin-top:2px;
+  }
+  .add-btn{
+    margin-top:auto;background:var(--ink);color:#fff;border:none;border-radius:8px;
+    padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Work Sans',sans-serif;
+  }
+  .add-btn:active{transform:scale(0.98);}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--moss);}
+
+  /* Carrito */
+  .overlay{
+    position:fixed;inset:0;background:rgba(32,41,31,.35);display:none;z-index:20;
+  }
+  .overlay.open{display:block;}
+  .drawer{
+    position:fixed;right:0;top:0;bottom:0;width:min(380px,92vw);background:var(--paper);
+    z-index:21;transform:translateX(100%);transition:transform .25s ease;
+    display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-items{flex:1;overflow-y:auto;padding:12px 20px;}
+  .item-row{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);align-items:center;}
+  .item-row img{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#EEE7D6;}
+  .item-info{flex:1;}
+  .item-name{font-size:13.5px;font-weight:600;}
+  .item-price{font-size:12px;color:var(--moss);}
+  .qty{display:flex;align-items:center;gap:8px;}
+  .qty button{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .drawer-foot{padding:18px 20px;border-top:1px solid var(--line);}
+  .total-row{display:flex;justify-content:space-between;font-weight:700;font-size:16px;margin-bottom:14px;font-family:'Fraunces',serif;}
+  .wa-btn{
+    width:100%;background:var(--whatsapp);color:#fff;border:none;border-radius:10px;
+    padding:13px;font-size:14.5px;font-weight:600;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;gap:8px;font-family:'Work Sans',sans-serif;
+  }
+  .close-x{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink);}
+
+  .fab-wa{
+    position:fixed;bottom:20px;left:20px;background:var(--whatsapp);color:#fff;
+    width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:15;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Catálogo <small id="tiendaNombre">Tienda</small></div>
+  <button class="cart-btn" onclick="abrirCarrito()">
+    🛍️ Carrito <span class="cart-count" id="cartCount">0</span>
+  </button>
+</header>
+
+<div class="filters" id="filters"></div>
+<div class="grid" id="grid"></div>
+<div class="empty" id="empty" style="display:none;">Todavía no hay productos cargados.</div>
+
+<a class="fab-wa" id="fabWa" href="#" target="_blank" title="Escribinos por WhatsApp">💬</a>
+
+<div class="overlay" id="overlay" onclick="cerrarCarrito()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3 style="margin:0;">Tu pedido</h3>
+    <button class="close-x" onclick="cerrarCarrito()">✕</button>
+  </div>
+  <div class="drawer-items" id="drawerItems"></div>
+  <div class="drawer-foot">
+    <div class="total-row"><span>Total</span><span id="totalMonto">$0</span></div>
+    <button class="wa-btn" onclick="enviarPedido()">💬 Enviar pedido por WhatsApp</button>
+  </div>
+</div>
+
+<script>
+/* ====== CONFIGURACIÓN ====== */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwL-iWhugdd2GCikJGptN8RZ8JdbMTRLkyfsNcSuDeQD2kDg2w7ZRfcv40Fcy_epoFK/exec';
+const WHATSAPP_NUMERO = '56972663760'; // código de país + número, sin + ni espacios
+const NOMBRE_TIENDA = 'Petchop El SIAMES';
+
+document.getElementById('tiendaNombre').textContent = NOMBRE_TIENDA;
+document.getElementById('fabWa').href = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent('Hola! Quería consultar por sus productos 🙂')}`;
+
+/* ====== DATOS DE DEMOSTRACIÓN (se usan si no configuraste APPS_SCRIPT_URL) ====== */
+const DEMO = [
+  {id:'1',nombre:'Mate imbuia', precio:15990, categoria:'Mates', imagenUrl:'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=400', descripcion:'Mate de madera imbuia con virola.'},
+  {id:'2',nombre:'Bombilla alpaca', precio:6990, categoria:'Accesorios', imagenUrl:'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400', descripcion:'Bombilla artesanal de alpaca.'},
+  {id:'3',nombre:'Yerbera cerámica', precio:12990, categoria:'Accesorios', imagenUrl:'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=400', descripcion:'Yerbera pintada a mano.'},
+  {id:'4',nombre:'Termo 1L', precio:24990, categoria:'Termos', imagenUrl:'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400', descripcion:'Termo acero inoxidable, mantiene el calor 12hs.'}
+];
+
+let productos = [];
+let categoriaActiva = 'Todos';
+let carrito = JSON.parse(sessionStorage.getItem('carrito') || '[]');
+
+async function cargarProductos(){
+  if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('PEGAR_AQUI')){
+    productos = DEMO;
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=productos`);
+    const data = await res.json();
+    productos = data.productos || [];
+  }catch(err){
+    productos = DEMO;
+  }
+  render();
+}
+
+function formatoPrecio(n){
+  return '$' + Number(n).toLocaleString('es-CL');
+}
+
+function render(){
+  const cats = ['Todos', ...new Set(productos.map(p=>p.categoria).filter(Boolean))];
+  const filtersEl = document.getElementById('filters');
+  filtersEl.innerHTML = cats.map(c =>
+    `<button class="pill ${c===categoriaActiva?'active':''}" onclick="filtrar('${c}')">${c}</button>`
+  ).join('');
+
+  const lista = categoriaActiva==='Todos' ? productos : productos.filter(p=>p.categoria===categoriaActiva);
+  const grid = document.getElementById('grid');
+  document.getElementById('empty').style.display = lista.length? 'none':'block';
+
+  grid.innerHTML = lista.map(p => `
+    <div class="card">
+      <img src="${p.imagenUrl || 'https://placehold.co/300x300/EEE7D6/999?text=Sin+foto'}" alt="${p.nombre}" loading="lazy">
+      <div class="card-body">
+        <div class="card-cat">${p.categoria||''}</div>
+        <div class="card-name">${p.nombre}</div>
+        <div class="price-tag">${formatoPrecio(p.precio)}</div>
+        <button class="add-btn" onclick="agregarAlCarrito('${p.id}')">Agregar al carrito</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filtrar(c){ categoriaActiva = c; render(); }
+
+function agregarAlCarrito(id){
+  const p = productos.find(x=>x.id===id);
+  const existente = carrito.find(x=>x.id===id);
+  if(existente){ existente.cantidad++; } else { carrito.push({...p, cantidad:1}); }
+  guardarCarrito();
+  abrirCarrito();
+}
+
+function cambiarCantidad(id, delta){
+  const item = carrito.find(x=>x.id===id);
+  item.cantidad += delta;
+  if(item.cantidad<=0){ carrito = carrito.filter(x=>x.id!==id); }
+  guardarCarrito();
+}
+
+function guardarCarrito(){
+  sessionStorage.setItem('carrito', JSON.stringify(carrito));
+  renderCarrito();
+}
+
+function renderCarrito(){
+  document.getElementById('cartCount').textContent = carrito.reduce((a,i)=>a+i.cantidad,0);
+  document.getElementById('drawerItems').innerHTML = carrito.length ? carrito.map(i => `
+    <div class="item-row">
+      <img src="${i.imagenUrl || 'https://placehold.co/100/EEE7D6/999?text=•'}">
+      <div class="item-info">
+        <div class="item-name">${i.nombre}</div>
+        <div class="item-price">${formatoPrecio(i.precio)} c/u</div>
+      </div>
+      <div class="qty">
+        <button onclick="cambiarCantidad('${i.id}',-1)">−</button>
+        <span>${i.cantidad}</span>
+        <button onclick="cambiarCantidad('${i.id}',1)">+</button>
+      </div>
+    </div>
+  `).join('') : '<p style="color:var(--moss);text-align:center;margin-top:30px;">Todavía no agregaste productos.</p>';
+
+  const total = carrito.reduce((a,i)=>a+i.precio*i.cantidad,0);
+  document.getElementById('totalMonto').textContent = formatoPrecio(total);
+}
+
+function abrirCarrito(){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+function cerrarCarrito(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+
+function enviarPedido(){
+  if(!carrito.length) return;
+  let msg = `Hola! Quisiera hacer este pedido:%0A%0A`;
+  carrito.forEach(i => {
+    msg += `• ${i.nombre} x${i.cantidad} — ${formatoPrecio(i.precio*i.cantidad)}%0A`;
+  });
+  const total = carrito.reduce((a,i)=>a+i.precio*i.cantidad,0);
+  msg += `%0ATotal: ${formatoPrecio(total)}`;
+  window.open(`https://wa.me/${WHATSAPP_NUMERO}?text=${msg}`, '_blank');
+}
+
+renderCarrito();
+cargarProductos();
+</script>
+</body>
+</html>
