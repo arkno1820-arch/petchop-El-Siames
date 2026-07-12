@@ -23,15 +23,18 @@
   h1,h2,h3,.brand{font-family:'Fraunces',serif;}
 
   header{
-    padding:28px 20px 18px;
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    position:relative;
+    padding:28px 70px 18px;
+    display:flex;align-items:center;justify-content:center;
     border-bottom:1px solid var(--line);
+    text-align:center;
   }
-  .brand{font-size:24px;font-weight:700;letter-spacing:-0.01em;}
+  .brand{font-size:clamp(20px,4vw,28px);font-weight:700;letter-spacing:-0.01em;}
   .brand small{display:block;font-family:'Work Sans',sans-serif;font-size:12px;font-weight:500;color:var(--moss);letter-spacing:.08em;text-transform:uppercase;}
 
   .cart-btn{
-    position:relative;background:var(--moss);color:#fff;border:none;
+    position:absolute;right:16px;top:50%;transform:translateY(-50%);
+    background:var(--moss);color:#fff;border:none;
     padding:10px 16px;border-radius:999px;font-family:'Work Sans',sans-serif;
     font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
   }
@@ -58,10 +61,19 @@
     background:var(--paper);border-radius:var(--radius);overflow:hidden;
     border:1px solid var(--line);display:flex;flex-direction:column;
   }
-  .card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#EEE7D6;}
+  .card-img{position:relative;}
+  .card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#EEE7D6;display:block;}
+  .img-nav{
+    position:absolute;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;
+    border:none;background:rgba(32,41,31,.55);color:#fff;font-size:16px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .img-nav.prev{left:6px;} .img-nav.next{right:6px;}
+  .img-dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:4px;}
+  .img-dots .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);}
+  .img-dots .dot.active{background:#fff;}
   .card-body{padding:12px 12px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
   .card-name{font-weight:600;font-size:14.5px;line-height:1.3;}
-  .card-cat{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--moss);font-weight:600;}
   .price-tag{
     align-self:flex-start;font-family:'Fraunces',serif;font-weight:600;font-size:16px;
     background:var(--bg);border:1px dashed var(--gold);padding:3px 10px 3px 8px;
@@ -74,6 +86,22 @@
   .add-btn:active{transform:scale(0.98);}
 
   .empty{text-align:center;padding:60px 20px;color:var(--moss);}
+
+  footer{
+    max-width:1100px;margin:20px auto 0;padding:24px 20px 100px;
+    border-top:1px solid var(--line);text-align:center;
+    font-size:12.5px;color:var(--moss);
+  }
+  footer strong{color:var(--ink);}
+  footer a{color:var(--moss);}
+
+  @media (min-width:640px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));}
+  }
+  @media (min-width:1000px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;}
+    header{padding:34px 90px 22px;}
+  }
 
   /* Carrito */
   .overlay{
@@ -109,6 +137,8 @@
     width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:15;
   }
+  .fab-wa svg{width:26px;height:26px;}
+  .wa-btn svg{width:18px;height:18px;}
 </style>
 </head>
 <body>
@@ -124,7 +154,9 @@
 <div class="grid" id="grid"></div>
 <div class="empty" id="empty" style="display:none;">Todavía no hay productos cargados.</div>
 
-<a class="fab-wa" id="fabWa" href="#" target="_blank" title="Escribinos por WhatsApp">💬</a>
+<a class="fab-wa" id="fabWa" href="#" target="_blank" title="Escribinos por WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.8 14.13c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.12.11-1.8-.11-.42-.13-.95-.31-1.64-.6-2.88-1.24-4.76-4.15-4.9-4.34-.14-.19-1.17-1.56-1.17-2.98 0-1.42.74-2.11 1-2.4.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.65.5.24.58.81 2 .88 2.15.07.15.12.32.02.52-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12 1 2.06 1.31 2.35 1.46.29.15.46.13.63-.08.17-.21.72-.84.92-1.13.19-.29.39-.24.65-.14.26.1 1.66.78 1.95.93.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg>
+</a>
 
 <div class="overlay" id="overlay" onclick="cerrarCarrito()"></div>
 <div class="drawer" id="drawer">
@@ -135,15 +167,22 @@
   <div class="drawer-items" id="drawerItems"></div>
   <div class="drawer-foot">
     <div class="total-row"><span>Total</span><span id="totalMonto">$0</span></div>
-    <button class="wa-btn" onclick="enviarPedido()">💬 Enviar pedido por WhatsApp</button>
+    <button class="wa-btn" onclick="enviarPedido()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.8 14.13c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.12.11-1.8-.11-.42-.13-.95-.31-1.64-.6-2.88-1.24-4.76-4.15-4.9-4.34-.14-.19-1.17-1.56-1.17-2.98 0-1.42.74-2.11 1-2.4.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.65.5.24.58.81 2 .88 2.15.07.15.12.32.02.52-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12 1 2.06 1.31 2.35 1.46.29.15.46.13.63-.08.17-.21.72-.84.92-1.13.19-.29.39-.24.65-.14.26.1 1.66.78 1.95.93.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg>
+      Enviar pedido por WhatsApp
+    </button>
   </div>
 </div>
+
+<footer>
+  Sitio administrado por <strong>César Manríquez</strong> · Contacto: <a href="mailto:arkno1820@gmail.com">arkno1820@gmail.com</a>
+</footer>
 
 <script>
 /* ====== CONFIGURACIÓN ====== */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzX2M2EzRp5TLDceDd3BVVOyXagfzvewMVHS0PuRhmglVFO4L7f-phqtbhy-o09KQoy/exec';
-const WHATSAPP_NUMERO = '56972663760'; // código de país + número, sin + ni espacios
-const NOMBRE_TIENDA = 'Petchop El SIAMES';
+const WHATSAPP_NUMERO = '56928721259'; // código de país + número, sin + ni espacios
+const NOMBRE_TIENDA = 'petchop El Siames';
 
 document.getElementById('tiendaNombre').textContent = NOMBRE_TIENDA;
 document.getElementById('fabWa').href = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent('Hola! Quería consultar por sus productos 🙂')}`;
@@ -159,6 +198,7 @@ const DEMO = [
 let productos = [];
 let categoriaActiva = 'Todos';
 let carrito = JSON.parse(sessionStorage.getItem('carrito') || '[]');
+let imgIndex = {};
 
 async function cargarProductos(){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('PEGAR_AQUI')){
@@ -191,17 +231,35 @@ function render(){
   const grid = document.getElementById('grid');
   document.getElementById('empty').style.display = lista.length? 'none':'block';
 
-  grid.innerHTML = lista.map(p => `
-    <div class="card">
-      <img src="${p.imagenUrl || 'https://placehold.co/300x300/EEE7D6/999?text=Sin+foto'}" alt="${p.nombre}" loading="lazy">
+  grid.innerHTML = lista.map(p => {
+    const imgs = (p.imagenUrl||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const primera = imgs[0] || 'https://placehold.co/300x300/EEE7D6/999?text=Sin+foto';
+    return `
+    <div class="card" id="card-${p.id}">
+      <div class="card-img">
+        <img id="img-${p.id}" src="${primera}" alt="${p.nombre}" loading="lazy">
+        ${imgs.length>1 ? `
+          <button class="img-nav prev" onclick="cambiarImagen('${p.id}',-1)">‹</button>
+          <button class="img-nav next" onclick="cambiarImagen('${p.id}',1)">›</button>
+          <div class="img-dots">${imgs.map((_,i)=>`<span class="dot ${i===0?'active':''}"></span>`).join('')}</div>
+        ` : ''}
+      </div>
       <div class="card-body">
-        <div class="card-cat">${p.categoria||''}</div>
         <div class="card-name">${p.nombre}</div>
         <div class="price-tag">${formatoPrecio(p.precio)}</div>
         <button class="add-btn" onclick="agregarAlCarrito('${p.id}')">Agregar al carrito</button>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
+}
+
+function cambiarImagen(id, delta){
+  const p = productos.find(x=>x.id===id);
+  const imgs = (p.imagenUrl||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(imgs.length<2) return;
+  imgIndex[id] = ((imgIndex[id]||0)+delta+imgs.length)%imgs.length;
+  document.getElementById('img-'+id).src = imgs[imgIndex[id]];
+  document.querySelectorAll(`#card-${id} .dot`).forEach((d,i)=>d.classList.toggle('active', i===imgIndex[id]));
 }
 
 function filtrar(c){ categoriaActiva = c; render(); }
@@ -230,7 +288,7 @@ function renderCarrito(){
   document.getElementById('cartCount').textContent = carrito.reduce((a,i)=>a+i.cantidad,0);
   document.getElementById('drawerItems').innerHTML = carrito.length ? carrito.map(i => `
     <div class="item-row">
-      <img src="${i.imagenUrl || 'https://placehold.co/100/EEE7D6/999?text=•'}">
+      <img src="${(i.imagenUrl||'').split(',')[0].trim() || 'https://placehold.co/100/EEE7D6/999?text=•'}">
       <div class="item-info">
         <div class="item-name">${i.nombre}</div>
         <div class="item-price">${formatoPrecio(i.precio)} c/u</div>
