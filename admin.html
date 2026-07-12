@@ -30,8 +30,7 @@
   }
   button.primary:disabled{opacity:.5;}
 
-  .preview{width:100%;aspect-ratio:1/1;max-width:160px;border-radius:10px;object-fit:cover;
-    background:#EEE7D6;margin-top:8px;display:none;}
+  .preview{width:80px;height:80px;border-radius:10px;object-fit:cover;background:#EEE7D6;}
 
   .lista{max-width:520px;margin:0 auto;}
   .prod-row{
@@ -67,9 +66,9 @@
 
   <div class="card">
     <h3 id="formTitle" style="margin:0;font-family:'Work Sans',sans-serif;font-size:14px;">Nuevo producto</h3>
-    <label>Foto</label>
-    <input type="file" id="imgInput" accept="image/*" onchange="previsualizar()">
-    <img id="preview" class="preview">
+    <label>Fotos (podés elegir varias)</label>
+    <input type="file" id="imgInput" accept="image/*" multiple onchange="previsualizar()">
+    <div id="previewRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
 
     <label>Nombre</label>
     <input id="nombre" placeholder="Ej: Mate imbuia">
@@ -80,7 +79,8 @@
     </div>
 
     <label>Categoría</label>
-    <input id="categoria" placeholder="Ej: Mates">
+    <input id="categoria" placeholder="Ej: Mates" list="catList">
+    <datalist id="catList"></datalist>
 
     <label>Descripción</label>
     <textarea id="descripcion" placeholder="Detalle breve del producto"></textarea>
@@ -100,7 +100,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzX2M2EzRp5TLDc
 let PIN = sessionStorage.getItem('adminPin') || '';
 let productos = [];
 let editandoId = null;
-let imagenBase64 = null, imagenNombre = null, imagenTipo = null;
+let archivosSeleccionados = []; // {nombre, tipo, base64}
 
 if(PIN) entrarConPin();
 
@@ -126,17 +126,22 @@ async function entrarConPin(){
 }
 
 function previsualizar(){
-  const file = document.getElementById('imgInput').files[0];
-  if(!file) return;
-  imagenNombre = file.name; imagenTipo = file.type;
-  const reader = new FileReader();
-  reader.onload = () => {
-    imagenBase64 = reader.result.split(',')[1];
-    const prev = document.getElementById('preview');
-    prev.src = reader.result;
-    prev.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+  const files = Array.from(document.getElementById('imgInput').files);
+  if(!files.length) return;
+  archivosSeleccionados = [];
+  const row = document.getElementById('previewRow');
+  row.innerHTML = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      archivosSeleccionados.push({nombre:file.name, tipo:file.type, base64:reader.result.split(',')[1]});
+      const img = document.createElement('img');
+      img.className = 'preview';
+      img.src = reader.result;
+      row.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function llamarBackend(body){
@@ -160,10 +165,14 @@ async function guardar(){
 
   try{
     let imagenUrl = editandoId ? (productos.find(p=>p.id===editandoId)||{}).imagenUrl : '';
-    if(imagenBase64){
-      const up = await llamarBackend({action:'uploadImage', filename:imagenNombre, mimeType:imagenTipo, base64:imagenBase64});
-      if(!up.ok) throw new Error(up.error);
-      imagenUrl = up.url;
+    if(archivosSeleccionados.length){
+      const urls = [];
+      for(const a of archivosSeleccionados){
+        const up = await llamarBackend({action:'uploadImage', filename:a.nombre, mimeType:a.tipo, base64:a.base64});
+        if(!up.ok) throw new Error(up.error);
+        urls.push(up.url);
+      }
+      imagenUrl = urls.join(',');
     }
 
     const producto = {
@@ -205,19 +214,24 @@ function editar(id){
   document.getElementById('stock').value = p.stock;
   document.getElementById('categoria').value = p.categoria;
   document.getElementById('descripcion').value = p.descripcion || '';
-  const prev = document.getElementById('preview');
-  prev.src = p.imagenUrl; prev.style.display = p.imagenUrl ? 'block':'none';
-  imagenBase64 = null;
+  const row = document.getElementById('previewRow');
+  row.innerHTML = '';
+  (p.imagenUrl||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(url=>{
+    const img = document.createElement('img');
+    img.className = 'preview'; img.src = url;
+    row.appendChild(img);
+  });
+  archivosSeleccionados = [];
   document.getElementById('cancelarBtn').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
 function resetForm(){
-  editandoId = null; imagenBase64 = null;
+  editandoId = null; archivosSeleccionados = [];
   document.getElementById('formTitle').textContent = 'Nuevo producto';
   ['nombre','precio','stock','categoria','descripcion'].forEach(id => document.getElementById(id).value='');
   document.getElementById('imgInput').value = '';
-  document.getElementById('preview').style.display = 'none';
+  document.getElementById('previewRow').innerHTML = '';
   document.getElementById('cancelarBtn').style.display = 'none';
 }
 
@@ -230,10 +244,16 @@ async function eliminar(id){
   }
 }
 
+function actualizarCategorias(){
+  const cats = [...new Set(productos.map(p => p.categoria).filter(Boolean))];
+  document.getElementById('catList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+}
+
 function renderLista(){
+  actualizarCategorias();
   document.getElementById('lista').innerHTML = productos.map(p => `
     <div class="prod-row">
-      <img src="${p.imagenUrl || 'https://placehold.co/100/EEE7D6/999?text=•'}">
+      <img src="${(p.imagenUrl||'').split(',')[0].trim() || 'https://placehold.co/100/EEE7D6/999?text=•'}">
       <div class="prod-info">
         <div class="prod-name">${p.nombre}</div>
         <div class="prod-meta">${p.categoria||''} · $${Number(p.precio).toLocaleString('es-CL')} · stock ${p.stock}</div>
