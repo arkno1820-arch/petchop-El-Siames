@@ -91,11 +91,18 @@
   </div>
 
   <div class="lista" id="lista"></div>
+
+  <div class="card" style="margin-top:30px;">
+    <h3 style="margin:0 0 4px;font-family:'Work Sans',sans-serif;font-size:14px;">Estadísticas</h3>
+    <p class="sub" style="margin-bottom:14px;">Visitas totales: <strong id="totalVisitas">—</strong></p>
+    <p class="sub" style="margin-bottom:6px;font-weight:600;">Carritos sin completar</p>
+    <div id="carritosAbandonados"></div>
+  </div>
 </div>
 
 <script>
 /* ====== CONFIGURACIÓN ====== */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzX2M2EzRp5TLDceDd3BVVOyXagfzvewMVHS0PuRhmglVFO4L7f-phqtbhy-o09KQoy/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaqLWgbtaTW3z_VhLqQgXVGqPyMUlpH-tNjS2_GREp0FqTegU1sIcNOO04y0Oj7nFI/exec';
 
 let PIN = sessionStorage.getItem('adminPin') || '';
 let productos = [];
@@ -120,9 +127,34 @@ async function entrarConPin(){
     document.getElementById('pinScreen').style.display = 'none';
     document.getElementById('panel').style.display = 'block';
     renderLista();
+    cargarStats();
   }catch(err){
     document.getElementById('pinMsg').textContent = 'No se pudo conectar. Revisá el PIN o la URL configurada.';
   }
+}
+
+async function cargarStats(){
+  try{
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=stats&pin=${encodeURIComponent(PIN)}`);
+    const data = await res.json();
+    if(!data.ok) return;
+    document.getElementById('totalVisitas').textContent = data.totalVisitas;
+
+    const cont = document.getElementById('carritosAbandonados');
+    if(!data.carritosAbandonados.length){
+      cont.innerHTML = '<p class="sub">Por ahora no hay carritos sin completar 🎉</p>';
+      return;
+    }
+    cont.innerHTML = data.carritosAbandonados.map(c => `
+      <div class="prod-row" style="align-items:flex-start;">
+        <div class="prod-info">
+          <div class="prod-meta">${new Date(c.fecha).toLocaleString('es-CL')}</div>
+          <div class="prod-name" style="font-size:13px;">${c.items.map(i=>`${i.nombre} x${i.cantidad}`).join(', ')}</div>
+          <div class="prod-meta">Total: $${Number(c.total).toLocaleString('es-CL')}</div>
+        </div>
+      </div>
+    `).join('');
+  }catch(err){}
 }
 
 function previsualizar(){
