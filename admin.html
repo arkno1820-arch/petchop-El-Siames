@@ -48,6 +48,20 @@
   .pin-screen{max-width:320px;margin:80px auto;text-align:center;}
   .msg{font-size:13px;text-align:center;margin-top:10px;min-height:16px;}
   .msg.ok{color:var(--moss);} .msg.err{color:var(--danger);}
+
+  .link-btn{
+    background:none;border:none;color:var(--danger);font-size:11px;
+    text-decoration:underline;cursor:pointer;margin-left:8px;padding:0;
+  }
+  .stat-label{font-size:12.5px;font-weight:600;margin:14px 0 2px;}
+  .chart-wrap{
+    display:flex;align-items:flex-end;gap:3px;height:110px;
+    overflow-x:auto;padding-top:10px;border-bottom:1px solid var(--line);
+  }
+  .chart-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    min-width:16px;flex:1;height:100%;}
+  .chart-bar{width:100%;max-width:20px;background:var(--moss);border-radius:3px 3px 0 0;min-height:2px;}
+  .chart-label{font-size:8.5px;color:var(--moss);margin-top:4px;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -94,15 +108,29 @@
 
   <div class="card" style="margin-top:30px;">
     <h3 style="margin:0 0 4px;font-family:'Work Sans',sans-serif;font-size:14px;">Estadísticas</h3>
-    <p class="sub" style="margin-bottom:14px;">Visitas totales: <strong id="totalVisitas">—</strong></p>
-    <p class="sub" style="margin-bottom:6px;font-weight:600;">Carritos sin completar</p>
+
+    <p class="sub" style="margin-bottom:4px;">
+      Visitas totales: <strong id="totalVisitas">—</strong>
+      <button class="link-btn" onclick="resetear('resetVisitas')">Reiniciar</button>
+    </p>
+
+    <p class="stat-label">Visitas por hora del día</p>
+    <div class="chart-wrap" id="chartHora"></div>
+
+    <p class="stat-label">Visitas por día (últimos 14)</p>
+    <div class="chart-wrap" id="chartDia"></div>
+
+    <p class="stat-label" style="margin-top:20px;">
+      Carritos sin completar
+      <button class="link-btn" onclick="resetear('resetCarritos')">Reiniciar</button>
+    </p>
     <div id="carritosAbandonados"></div>
   </div>
 </div>
 
 <script>
 /* ====== CONFIGURACIÓN ====== */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaqLWgbtaTW3z_VhLqQgXVGqPyMUlpH-tNjS2_GREp0FqTegU1sIcNOO04y0Oj7nFI/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2EB0ywgt5RmAYDLFBt0WTzE5rC_-kiCNEQKANIjdQmFA24CPP5NySNLkLWv1sm2GO/exec';
 
 let PIN = sessionStorage.getItem('adminPin') || '';
 let productos = [];
@@ -140,6 +168,9 @@ async function cargarStats(){
     if(!data.ok) return;
     document.getElementById('totalVisitas').textContent = data.totalVisitas;
 
+    renderChart('chartHora', data.visitasPorHora, data.visitasPorHora.map((_,h)=>h));
+    renderChart('chartDia', data.visitasPorDia.map(d=>d.count), data.visitasPorDia.map(d=>d.fecha));
+
     const cont = document.getElementById('carritosAbandonados');
     if(!data.carritosAbandonados.length){
       cont.innerHTML = '<p class="sub">Por ahora no hay carritos sin completar 🎉</p>';
@@ -155,6 +186,27 @@ async function cargarStats(){
       </div>
     `).join('');
   }catch(err){}
+}
+
+function renderChart(containerId, valores, etiquetas){
+  const el = document.getElementById(containerId);
+  if(!valores.length){ el.innerHTML = '<p class="sub">Todavía no hay datos.</p>'; return; }
+  const max = Math.max(...valores, 1);
+  el.innerHTML = valores.map((v,i) => `
+    <div class="chart-col" title="${v} visita(s)">
+      <div class="chart-bar" style="height:${Math.max((v/max*90),2)}px;"></div>
+      <div class="chart-label">${etiquetas[i]}</div>
+    </div>
+  `).join('');
+}
+
+async function resetear(action){
+  const texto = action==='resetVisitas'
+    ? '¿Reiniciar el contador de visitas? Se borra todo el historial.'
+    : '¿Reiniciar los carritos sin completar? Se borra todo el historial.';
+  if(!confirm(texto)) return;
+  const resp = await llamarBackend({action});
+  if(resp.ok) cargarStats();
 }
 
 function previsualizar(){
