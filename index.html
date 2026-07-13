@@ -179,12 +179,12 @@
 </div>
 
 <footer>
-  Sitio creado por <strong>César Manríquez</strong> · Contacto: <a href="mailto:arkno1820@gmail.com">arkno1820@gmail.com</a>
+  Sitio administrado por <strong>Cesar Manriquez</strong> · Contacto: <a href="mailto:arkno1820@gmail.com">arkno1820@gmail.com</a>
 </footer>
 
 <script>
 /* ====== CONFIGURACIÓN ====== */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzX2M2EzRp5TLDceDd3BVVOyXagfzvewMVHS0PuRhmglVFO4L7f-phqtbhy-o09KQoy/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaqLWgbtaTW3z_VhLqQgXVGqPyMUlpH-tNjS2_GREp0FqTegU1sIcNOO04y0Oj7nFI/exec';
 const WHATSAPP_NUMERO = '56928721259'; // código de país + número, sin + ni espacios
 const NOMBRE_TIENDA = 'Petchop El Siames';
 
@@ -203,6 +203,36 @@ let productos = [];
 let categoriaActiva = 'Todos';
 let carrito = JSON.parse(sessionStorage.getItem('carrito') || '[]');
 let imgIndex = {};
+
+let sessionId = sessionStorage.getItem('sessionId');
+if(!sessionId){
+  sessionId = crypto.randomUUID();
+  sessionStorage.setItem('sessionId', sessionId);
+}
+
+function backendDisponible(){
+  return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('PEGAR_AQUI');
+}
+
+function registrarVisita(){
+  if(!backendDisponible() || sessionStorage.getItem('visitaRegistrada')) return;
+  sessionStorage.setItem('visitaRegistrada', '1');
+  fetch(APPS_SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'registrarVisita'})}).catch(()=>{});
+}
+
+function sincronizarCarrito(){
+  if(!backendDisponible() || !carrito.length) return;
+  const total = carrito.reduce((a,i)=>a+i.precio*i.cantidad,0);
+  fetch(APPS_SCRIPT_URL, {
+    method:'POST',
+    body: JSON.stringify({action:'actualizarCarrito', sessionId, items:carrito, total})
+  }).catch(()=>{});
+}
+
+function marcarCarritoCompletado(){
+  if(!backendDisponible()) return;
+  fetch(APPS_SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'completarCarrito', sessionId})}).catch(()=>{});
+}
 
 async function cargarProductos(){
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('PEGAR_AQUI')){
@@ -286,6 +316,7 @@ function cambiarCantidad(id, delta){
 function guardarCarrito(){
   sessionStorage.setItem('carrito', JSON.stringify(carrito));
   renderCarrito();
+  sincronizarCarrito();
 }
 
 function renderCarrito(){
@@ -327,10 +358,12 @@ function enviarPedido(){
   const total = carrito.reduce((a,i)=>a+i.precio*i.cantidad,0);
   msg += `%0ATotal: ${formatoPrecio(total)}`;
   window.open(`https://wa.me/${WHATSAPP_NUMERO}?text=${msg}`, '_blank');
+  marcarCarritoCompletado();
 }
 
 renderCarrito();
 cargarProductos();
+registrarVisita();
 </script>
 </body>
 </html>
